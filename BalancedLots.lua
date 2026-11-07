@@ -41,7 +41,38 @@ local defaults = {
 local settings = config.load(defaults)
 
 local function resolve_target(requested)
-    requested = tostring(requested or ''):gsub('^%s+', ''):gsub('%s+
+    requested = tostring(requested or '')
+    requested = requested:gsub('^%s+', '')
+    requested = requested:reverse():gsub('^%s+', ''):reverse()
+    local item
+    if requested:match('^%d+$') then
+        item = res.items[tonumber(requested)]
+    elseif requested ~= '' then
+        item = res.items:with('english', requested)
+        if not item then
+            for _, candidate in pairs(res.items) do
+                if type(candidate) == 'table' and type(candidate.english) == 'string' and
+                   candidate.english:lower() == requested:lower() then
+                    item = candidate
+                    break
+                end
+            end
+        end
+    end
+    if not item or not tonumber(item.id) then return nil, nil end
+    return tonumber(item.id), tostring(item.english or item.name or requested)
+end
+
+local function apply_target()
+    TARGET_ITEM_ID, TARGET_ITEM_NAME = resolve_target(settings.Item)
+    if not TARGET_ITEM_ID then
+        TARGET_ITEM_NAME = '(invalid item: ' .. tostring(settings.Item) .. ')'
+    end
+    settings.Goal = math.max(0, math.floor(tonumber(settings.Goal) or 0))
+end
+
+apply_target()
+
 local inventory_id = res.bags:with('english', 'Inventory').id
 
 local pool_check_due = nil
